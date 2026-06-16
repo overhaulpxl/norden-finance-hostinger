@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Norden Finance Icon</title>
+  <desc id="desc">Yellow square Norden icon with black N arrow mark.</desc>
+  <rect x="16" y="16" width="224" height="224" rx="0" fill="#F5D547"/>
+  <rect x="34" y="34" width="188" height="188" fill="none" stroke="#111111" stroke-width="18"/>
+  <path fill="#111111" d="M61 176h39l28-74 31 74h37l-47-112h-38L61 176Z"/>
+  <path fill="#111111" d="M138 112 206 61l16 84-30-19-41 60-31-18 43-62-25 6Z"/>
+</svg>

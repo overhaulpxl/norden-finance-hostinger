@@ -1,0 +1,62 @@
+{
+  "name": "my-app",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "postinstall": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "check:data-counts": "tsx scripts/check-data-counts.ts",
+    "migrate:postgres-to-mysql": "tsx scripts/migrate-postgres-to-mysql.ts",
+    "migrate:firebase-storage-to-local": "tsx scripts/migrate-firebase-storage-to-local.ts",
+    "check:production": "tsx scripts/check-production-readiness.ts",
+    "check:bundle": "tsx scripts/check-bundle-budget.ts",
+    "check:release": "npm run lint && npx tsc --noEmit && npx prisma validate && npm audit --omit=dev && npm run build && npm run check:bundle && npm run check:production",
+    "seed:defaults": "prisma db seed"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@prisma/client": "^5.22.0",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.4.0",
+    "dotenv": "^17.4.2",
+    "firebase": "^12.14.0",
+    "firebase-admin": "^13.10.0",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
+    "lucide-react": "^1.17.0",
+    "mysql2": "^3.22.5",
+    "next": "^15.5.19",
+    "pg": "^8.21.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "recharts": "^3.8.1",
+    "tailwind-merge": "^3.6.0"
+  },
+  "overrides": {
+    "postcss": "^8.5.15",
+    "uuid": "^11.1.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/pg": "^8.20.0",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "^15.5.19",
+    "prisma": "^5.22.0",
+    "tailwindcss": "^4",
+    "tsx": "^4.22.4",
+    "typescript": "^5"
+  }
+}

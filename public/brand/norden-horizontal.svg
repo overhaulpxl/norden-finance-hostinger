@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 240" role="img" aria-labelledby="title desc">
+  <title id="title">Norden Finance Horizontal Logo</title>
+  <desc id="desc">Norden Finance horizontal logo with yellow icon and black wordmark.</desc>
+  <rect x="16" y="32" width="176" height="176" fill="#F5D547"/>
+  <rect x="30" y="46" width="148" height="148" fill="none" stroke="#111111" stroke-width="14"/>
+  <path fill="#111111" d="M52 150h31l22-58 25 58h30L122 62H92L52 150Z"/>
+  <path fill="#111111" d="M112 98 165 59l13 66-24-15-33 48-24-14 34-49-19 3Z"/>
+  <text x="230" y="105" fill="#111111" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="58" font-weight="900" letter-spacing="3">NORDEN</text>
+  <text x="230" y="168" fill="#111111" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="58" font-weight="900" letter-spacing="3">FINANCE</text>
+</svg>
