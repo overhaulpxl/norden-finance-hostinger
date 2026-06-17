@@ -45,6 +45,15 @@ Firebase default verification email sending is not used. The app registers users
 | Start Command | `npm run start` |
 | Node Version | `22` |
 
+Hostinger Managed Node.js may only allow selecting `npm run build` from the Build Command dropdown. Keep that value. In this repository, `npm run build` already runs:
+
+1. production runtime env sanity checks
+2. `prisma generate`
+3. `prisma migrate deploy`
+4. `next build`
+
+Do not try to configure `npm run db:migrate && npm run build` in Hostinger. `prisma migrate deploy` is safe and idempotent for production schema migrations; it is not `prisma migrate reset` and it does not drop data.
+
 ## Production Runtime Environment
 
 Set these in Hostinger Managed Node.js:
@@ -111,6 +120,8 @@ Apply the MySQL schema to the empty Hostinger database:
 ```bash
 npm run db:migrate
 ```
+
+During Hostinger redeploys, this same safe migration step is also run automatically by `npm run build`.
 
 Run a read-only dry-run first:
 
@@ -180,6 +191,28 @@ No uploads should be saved inside `.next`, `src`, or `public`.
 - Dashboard rendering remains tied to real server-side dashboard data from `getDashboardData()`.
 - Skeletons are used for route chunks and dashboard widgets while those chunks load.
 - Loading must not be purely decorative and must not add artificial delay.
+
+## Local Build Testing
+
+Use one of these when a local machine should not run production database migrations:
+
+```bash
+npm run build:next
+```
+
+Or run the full Hostinger build wrapper while skipping only `prisma migrate deploy` when the runtime env is configured:
+
+```bash
+SKIP_DB_MIGRATE=1 npm run build
+```
+
+Windows PowerShell:
+
+```powershell
+$env:SKIP_DB_MIGRATE="1"; npm run build
+```
+
+`SKIP_DB_MIGRATE=1` does not skip runtime env checks, Prisma Client generation, or the Next.js build. Normal Hostinger builds should not set this flag.
 
 ## Firebase Configuration
 

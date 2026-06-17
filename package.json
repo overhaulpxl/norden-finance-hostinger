@@ -7,18 +7,20 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "build": "node scripts/hostinger-build.mjs",
+    "build:next": "next build",
+    "start": "next start -H 0.0.0.0",
     "lint": "eslint",
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate deploy",
+    "prisma:generate": "prisma generate",
     "check:data-counts": "tsx scripts/check-data-counts.ts",
     "migrate:postgres-to-mysql": "tsx scripts/migrate-postgres-to-mysql.ts",
     "migrate:firebase-storage-to-local": "tsx scripts/migrate-firebase-storage-to-local.ts",
     "check:production": "tsx scripts/check-production-readiness.ts",
     "check:migration": "tsx scripts/check-migration-readiness.ts",
     "check:bundle": "tsx scripts/check-bundle-budget.ts",
-    "check:release": "npm run lint && npx tsc --noEmit && npx prisma validate && npm audit --omit=dev && npm run build && npm run check:bundle && npm run check:production",
+    "check:release": "npm run lint && npx tsc --noEmit && npx prisma validate && npm audit --omit=dev && npm run build:next && npm run check:bundle && npm run check:production",
     "seed:defaults": "prisma db seed"
   },
   "prisma": {

@@ -339,6 +339,27 @@ SUPPORT_EMAIL=support@nordenfinance.site
 
 One-time migration variables belong in `.env.migration`, based on `.env.migration.example`. Production Hostinger runtime does not need `POSTGRES_DATABASE_URL`, `MYSQL_DATABASE_URL`, `EMAIL_VERIFICATION_PROVIDER`, or `RESEND_API_KEY`.
 
+### Build Commands
+
+```bash
+# Hostinger production build wrapper
+npm run build
+
+# Local Next-only build without production migration handling
+npm run build:next
+
+# Test the Hostinger wrapper locally while skipping only prisma migrate deploy
+SKIP_DB_MIGRATE=1 npm run build
+```
+
+Windows PowerShell:
+
+```powershell
+$env:SKIP_DB_MIGRATE="1"; npm run build
+```
+
+`npm run build` runs production runtime env checks, `prisma generate`, safe/idempotent `prisma migrate deploy`, and `next build`. `SKIP_DB_MIGRATE=1` still requires runtime env; use `npm run build:next` when local env is unavailable. Keep Hostinger Build Command set to `npm run build`; do not configure `npm run db:migrate && npm run build`. Never use `prisma migrate reset` or `prisma db push --force-reset` against production.
+
 ---
 
 ## ⚡ Mobile Shortcuts & NFC Stickers
@@ -363,7 +384,7 @@ Norden Finance supports logging transactions directly from mobile OS automation 
 
 ## Hostinger Managed Node.js Deployment
 
-Hostinger deployment uses Managed Node.js hosting, not VPS. Use repository `overhaulpxl/norden-finance-hostinger`, branch `main`, root directory `/`, install command `npm install`, build command `npm run build`, and start command `npm run start`.
+Hostinger deployment uses Managed Node.js hosting, not VPS. Use repository `overhaulpxl/norden-finance-hostinger`, branch `main`, root directory `/`, install command `npm install`, build command `npm run build`, output directory `.next`, package manager `npm`, start command `npm run start`, and Node `22`.
 
 Set `DATABASE_URL` to the Hostinger MySQL/MariaDB database after backups and data migration are complete. Set `NEXT_PUBLIC_APP_URL=https://nordenfinance.site` and Hostinger SMTP credentials for `no-reply@nordenfinance.site`. Verification email is SMTP-only: the app does not use Resend or Firebase default verification email sending. Use `STORAGE_PROVIDER=local` only after Hostinger upload persistence is verified after restart, rebuild, and redeploy.
 
