@@ -3,25 +3,32 @@
 This repository is the Hostinger deploy build for Norden Finance.
 
 - Repository: `overhaulpxl/norden-finance-hostinger`
+- Branch: `main`
 - Domain: `https://nordenfinance.site`
 - Hosting: Hostinger Managed Node.js
 - Runtime: Node.js 22
 - Framework: Next.js 15
-- Database: Hostinger MySQL/MariaDB
-- Storage: Hostinger local uploads
-- Auth: Firebase Auth
-- Session verification: Firebase Admin
 
 This is not a VPS deployment. Do not use Nginx, PM2, `sudo`, `systemctl`, local PostgreSQL installation, or manual server setup.
 
+## Final Service Map
+
+- Hostinger: Next.js app, MySQL/MariaDB, local uploads.
+- Firebase: Auth and Firebase Admin verification only.
+- Hostinger SMTP: email verification and transactional email.
+- Gemini: AI parsing and receipt scanning.
+- Old PostgreSQL: one-time migration source only.
+- Old Firebase Storage: old-file migration source and rollback source only.
+- Resend: optional fallback only; not required for email verification.
+
 ## Safety Rules
 
-- Keep the old `overhaulpxl/norden-finance` repository untouched until Hostinger is verified.
-- Keep the old PostgreSQL database untouched.
+- Keep the old PostgreSQL database untouched until migration is verified.
 - Keep old Firebase Storage files untouched.
 - Do not run `prisma migrate reset` or `prisma db push --force-reset`.
 - Do not commit `.env` files, database dumps, SQL backups, uploaded files, or secrets.
-- Keep Vercel production available until Hostinger passes smoke tests.
+- Do not run migration scripts with `--execute` until backups are complete and dry-run output has been reviewed.
+- Never delete Firebase Storage files automatically during local file migration.
 
 ## Hostinger Import Settings
 
@@ -39,12 +46,22 @@ This is not a VPS deployment. Do not use Nginx, PM2, `sudo`, `systemctl`, local 
 ## Environment Variables
 
 ```env
-DATABASE_URL=mysql://DB_USER:DB_PASSWORD@DB_HOST:3306/DB_NAME
+DATABASE_URL=mysql://u945428838_nordenfinance:PASSWORD@localhost:3306/u945428838_nordenfinance
+MYSQL_DATABASE_URL=mysql://u945428838_nordenfinance:PASSWORD@localhost:3306/u945428838_nordenfinance
+POSTGRES_DATABASE_URL=postgresql://OLD_POSTGRES_URL
+
 NEXT_PUBLIC_APP_URL=https://nordenfinance.site
-EMAIL_VERIFICATION_PROVIDER=firebase
+
+EMAIL_VERIFICATION_PROVIDER=smtp
+SMTP_HOST=smtp.hostinger.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=no-reply@nordenfinance.site
+SMTP_PASS=
+EMAIL_FROM="Norden Finance <no-reply@nordenfinance.site>"
 
 STORAGE_PROVIDER=local
-UPLOAD_DIR=/absolute/path/to/persistent/uploads
+UPLOAD_DIR=/home/u945428838/domains/nordenfinance.site/uploads
 UPLOAD_PUBLIC_BASE_URL=https://nordenfinance.site/api/files
 MAX_UPLOAD_SIZE_MB=5
 
@@ -54,24 +71,26 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 NEXT_PUBLIC_FIREBASE_APP_ID=
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=
+
+FIREBASE_PROJECT_ID=
+FIREBASE_CLIENT_EMAIL=
+FIREBASE_PRIVATE_KEY=
 
 FIREBASE_ADMIN_PROJECT_ID=
 FIREBASE_ADMIN_CLIENT_EMAIL=
 FIREBASE_ADMIN_PRIVATE_KEY=
 
 GEMINI_API_KEY=
-RESEND_API_KEY=
-EMAIL_FROM=
 CRON_SECRET=
 SHORTCUT_TOKEN_SECRET=
+ADMIN_EMAIL=admin@nordenfinance.site
+SUPPORT_EMAIL=support@nordenfinance.site
+
+RESEND_API_KEY=
 ```
 
-Migration-only envs:
-
-```env
-POSTGRES_DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE
-MYSQL_DATABASE_URL=mysql://DB_USER:DB_PASSWORD@DB_HOST:3306/DB_NAME
-```
+`POSTGRES_DATABASE_URL` and `MYSQL_DATABASE_URL` are migration-only variables. Keep them until old data is copied and verified. `RESEND_API_KEY` is optional.
 
 ## Database Migration
 
@@ -94,7 +113,7 @@ Run a read-only dry-run first:
 npm run migrate:postgres-to-mysql -- --dry-run
 ```
 
-After backup and review, execute:
+Execute only after backup and review:
 
 ```bash
 npm run migrate:postgres-to-mysql -- --execute
@@ -106,22 +125,13 @@ Verify counts:
 npm run check:data-counts
 ```
 
-## Upload Storage Migration
+## File Migration
 
-Firebase Storage is retained only as an old-file source and rollback option. New uploads use Hostinger local storage when:
+Firebase Storage is retained only as an old-file source and rollback option. New uploads use Hostinger local storage:
 
 ```env
 STORAGE_PROVIDER=local
 ```
-
-Run the local upload persistence test before treating local storage as production-safe:
-
-1. Upload a QRIS image and payment proof.
-2. Confirm both open through `/api/files/...`.
-3. Restart the Hostinger app.
-4. Re-check both files.
-5. Rebuild/redeploy from GitHub.
-6. Re-check both files again.
 
 Dry-run Firebase Storage URL migration:
 
@@ -129,7 +139,7 @@ Dry-run Firebase Storage URL migration:
 npm run migrate:firebase-storage-to-local -- --dry-run
 ```
 
-After review, execute:
+Execute only after review:
 
 ```bash
 npm run migrate:firebase-storage-to-local -- --execute
@@ -137,41 +147,64 @@ npm run migrate:firebase-storage-to-local -- --execute
 
 The script writes an ignored report under `migration-reports/`. It never deletes Firebase Storage files.
 
+## Upload Persistence Test
+
+1. Upload a QRIS image or payment proof.
+2. Confirm the file opens through `/api/files/...`.
+3. Restart the Hostinger app.
+4. Verify the file still opens.
+5. Redeploy from GitHub.
+6. Verify the file still opens again.
+
+No uploads should be saved inside `.next`, `src`, or `public`.
+
+## Email Deliverability Checklist
+
+1. Create the `no-reply@nordenfinance.site` mailbox in Hostinger.
+2. Set the SMTP environment variables.
+3. Enable SPF for the domain.
+4. Enable DKIM for the domain.
+5. Add a DMARC record.
+6. Test verification delivery to Gmail, Outlook, and Yahoo.
+7. Keep subjects and body copy direct; avoid spammy wording.
+
+## Loading Behavior
+
+- The app boot loader waits for critical brand assets, fonts, and auth readiness on auth/protected routes.
+- Dashboard rendering remains tied to real server-side dashboard data from `getDashboardData()`.
+- Skeletons are used for route chunks and dashboard widgets while those chunks load.
+- Loading must not be purely decorative and must not add artificial delay.
+
 ## Firebase Configuration
 
-Firebase remains for Auth and Admin verification only. In Firebase Console, add:
+Firebase remains for Auth and Admin verification. In Firebase Console, add:
 
 ```text
 nordenfinance.site
 ```
 
-Keep this domain until migration is verified:
-
-```text
-nordenfinance.vercel.app
-```
+Keep `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` while Firebase client config and old-file migration support need it.
 
 ## Smoke Tests
 
 1. `https://nordenfinance.site` loads.
-2. Login/register/verification still use Firebase Auth.
-3. Existing user can log in.
-4. Existing profile maps to the same Firebase UID.
-5. Existing wallets, balances, and transactions appear.
-6. Smart Input creates transactions.
-7. Transfer updates both wallets.
-8. Admin QRIS upload saves locally and displays.
-9. Payment proof upload saves locally and admin can view it.
-10. Old Firebase file URLs still open until file migration is verified.
-11. Data counts match the pre-migration PostgreSQL record.
-12. No uploads are saved inside `.next`, `src`, or `public`.
+2. Register with email/password and receive Hostinger SMTP verification email.
+3. Verification link lands on `/auth/verified`.
+4. Existing user can log in.
+5. Existing profile maps to the same Firebase UID.
+6. Existing wallets, balances, and transactions appear.
+7. Smart Input creates transactions.
+8. Transfer updates both wallets.
+9. Admin QRIS upload saves locally and displays.
+10. Payment proof upload saves locally and admin can view it.
+11. Old Firebase file URLs remain available until file migration is verified.
+12. Data counts match the pre-migration PostgreSQL record.
 
 ## Rollback
 
 If Hostinger MySQL or local uploads fail:
 
-1. Keep DNS on the last working production host or revert to Vercel.
-2. Keep the old repo, PostgreSQL database, and Firebase Storage files untouched.
+1. Keep DNS on the last working production host while investigating.
+2. Keep the old repository, PostgreSQL database, and Firebase Storage files untouched.
 3. Do not run destructive database commands.
-4. Use the old Vercel/PostgreSQL deployment while fixing this deploy repo.
-5. If only local uploads fail, temporarily set `STORAGE_PROVIDER=firebase` while persistence is investigated.
+4. If only local uploads fail, temporarily set `STORAGE_PROVIDER=firebase` while persistence is investigated.

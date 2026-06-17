@@ -30,7 +30,7 @@ export default function VerificationErrorPage() {
             href="/verify-email"
             className="block w-full border-[3px] border-black bg-[#FFE066] py-4 text-center text-xs font-black uppercase tracking-wider text-black shadow-[4px_4px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_#000]"
           >
-            Resend Verification Email
+            Request New Verification Email
           </Link>
         </section>
       </main>

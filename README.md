@@ -273,7 +273,7 @@ npm install
 
 # 3. Set up environment variables
 cp .env.example .env.local
-# Fill in your DATABASE_URL, Firebase config, and GEMINI_API_KEY
+# Fill in DATABASE_URL, Firebase config, Hostinger SMTP, uploads, and GEMINI_API_KEY
 ```
 
 ### 🗄️ Database Migrations
@@ -318,18 +318,28 @@ FIREBASE_ADMIN_PRIVATE_KEY=
 # Google Gemini AI Key
 GEMINI_API_KEY=
 
-# Email Delivery (Resend Integration)
+# Hostinger SMTP Email Verification
+EMAIL_VERIFICATION_PROVIDER=smtp
+SMTP_HOST=smtp.hostinger.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=no-reply@nordenfinance.site
+SMTP_PASS=
+EMAIL_FROM="Norden Finance <no-reply@nordenfinance.site>"
+
+# Optional Resend fallback
 RESEND_API_KEY=
-EMAIL_FROM=
 
 # Application Config
 NEXT_PUBLIC_APP_URL=https://nordenfinance.site
 CRON_SECRET=
 SHORTCUT_TOKEN_SECRET=
 STORAGE_PROVIDER=local
-UPLOAD_DIR="/home/USERNAME/domains/nordenfinance.site/uploads"
+UPLOAD_DIR=/home/u945428838/domains/nordenfinance.site/uploads
 UPLOAD_PUBLIC_BASE_URL=https://nordenfinance.site/api/files
 MAX_UPLOAD_SIZE_MB=5
+ADMIN_EMAIL=admin@nordenfinance.site
+SUPPORT_EMAIL=support@nordenfinance.site
 ```
 
 ---
@@ -358,7 +368,7 @@ Norden Finance supports logging transactions directly from mobile OS automation 
 
 Hostinger deployment uses Managed Node.js hosting, not VPS. Use repository `overhaulpxl/norden-finance-hostinger`, branch `main`, root directory `/`, install command `npm install`, build command `npm run build`, and start command `npm run start`.
 
-Set `DATABASE_URL` to the Hostinger MySQL/MariaDB database after backups and data migration are complete. Set `NEXT_PUBLIC_APP_URL=https://nordenfinance.site` and use `STORAGE_PROVIDER=local` only after Hostinger upload persistence is verified after restart, rebuild, and redeploy.
+Set `DATABASE_URL` to the Hostinger MySQL/MariaDB database after backups and data migration are complete. Set `NEXT_PUBLIC_APP_URL=https://nordenfinance.site`, `EMAIL_VERIFICATION_PROVIDER=smtp`, and Hostinger SMTP credentials for `no-reply@nordenfinance.site`. Use `STORAGE_PROVIDER=local` only after Hostinger upload persistence is verified after restart, rebuild, and redeploy.
 
 See `DEPLOY_HOSTINGER.md` for the full deployment, backup, data verification, DNS, Firebase Authorized Domains, and rollback checklist.
 

@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { Outfit } from 'next/font/google';
+import AppBootLoader from '../components/AppBootLoader';
 import './globals.css';
-const font = Outfit({ subsets: ['latin'] });
+const font = Outfit({ subsets: ['latin'], display: 'swap' });
 
 export const metadata: Metadata = {
   title: "Norden Finance",
@@ -25,6 +26,7 @@ export default function RootLayout({
   return (
     <html lang="id" className="light" suppressHydrationWarning>
       <body className={`${font.className} transition-colors duration-300`} suppressHydrationWarning>
+        <AppBootLoader />
         {children}
       </body>
     </html>

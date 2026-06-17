@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sendVerificationEmail } from '../../../../lib/authEmail';
+import { getEmailVerificationProvider, sendVerificationEmail } from '../../../../lib/authEmail';
 import { getAdminAuth } from '../../../../lib/firebaseAdmin';
 import { prisma } from '../../../../lib/prisma';
 import { assertRateLimit, rateLimitKey } from '../../../../lib/rateLimit';
 import { assertSameOrigin } from '../../../../lib/requestSecurity';
 
 function normalizeAuthError(error: unknown): { code: string; message: string; status: number } {
-  console.error("[Resend Verification]", error);
+  console.error('[Email Verification]', error);
 
   let errorCode = 'UNKNOWN_ERROR';
   let message = 'Gagal mengirim email verifikasi. Silakan coba lagi.';
@@ -60,14 +60,15 @@ function normalizeAuthError(error: unknown): { code: string; message: string; st
       errorCode = 'INVALID_EMAIL';
       message = 'Email tidak valid.';
       status = 400;
-    } else if (searchTarget.includes('resend_not_configured')) {
-      errorCode = 'RESEND_NOT_CONFIGURED';
+    } else if (
+      searchTarget.includes('email_provider_not_configured') ||
+      searchTarget.includes('required for smtp email delivery') ||
+      searchTarget.includes('smtp_port must be') ||
+      searchTarget.includes('smtp_secure must be')
+    ) {
+      errorCode = 'EMAIL_PROVIDER_NOT_CONFIGURED';
       message = 'Layanan email belum dikonfigurasi. Silakan hubungi support.';
       status = 503;
-    } else if (searchTarget.includes('onboarding@resend.dev') || searchTarget.includes('restricted') || searchTarget.includes('testing') || searchTarget.includes('validation')) {
-      errorCode = 'TESTING_RESTRICTION';
-      message = 'Email verifikasi tidak dapat dikirim ke email ini karena batasan akun pengirim uji coba. Hubungi administrator atau gunakan Firebase Auth default.';
-      status = 403;
     }
   } else if (typeof error === 'string') {
     const searchTarget = error.toLowerCase();
@@ -79,14 +80,15 @@ function normalizeAuthError(error: unknown): { code: string; message: string; st
       errorCode = 'TOO_MANY_REQUESTS';
       message = 'Terlalu banyak percobaan. Silakan coba lagi nanti.';
       status = 429;
-    } else if (searchTarget.includes('resend_not_configured')) {
-      errorCode = 'RESEND_NOT_CONFIGURED';
+    } else if (
+      searchTarget.includes('email_provider_not_configured') ||
+      searchTarget.includes('required for smtp email delivery') ||
+      searchTarget.includes('smtp_port must be') ||
+      searchTarget.includes('smtp_secure must be')
+    ) {
+      errorCode = 'EMAIL_PROVIDER_NOT_CONFIGURED';
       message = 'Layanan email belum dikonfigurasi. Silakan hubungi support.';
       status = 503;
-    } else if (searchTarget.includes('onboarding@resend.dev') || searchTarget.includes('restricted') || searchTarget.includes('testing') || searchTarget.includes('validation')) {
-      errorCode = 'TESTING_RESTRICTION';
-      message = 'Email verifikasi tidak dapat dikirim ke email ini karena batasan akun pengirim uji coba. Hubungi administrator atau gunakan Firebase Auth default.';
-      status = 403;
     }
   }
 
@@ -99,7 +101,7 @@ export async function POST(request: NextRequest) {
 
     // IP-based limit (5 requests per 60 seconds)
     try {
-      await assertRateLimit(rateLimitKey(request, 'auth-resend-verification'), 5, 60_000);
+      await assertRateLimit(rateLimitKey(request, 'auth-verification-email'), 5, 60_000);
     } catch {
       return NextResponse.json(
         {
@@ -127,8 +129,8 @@ export async function POST(request: NextRequest) {
     // Minimum interval: 60 seconds (1 request per 60s)
     // Stronger limit: max 3 requests per 15 minutes
     try {
-      await assertRateLimit(`resend-uid-min:${decodedToken.uid}`, 1, 60_000);
-      await assertRateLimit(`resend-uid-15m:${decodedToken.uid}`, 3, 15 * 60_000);
+      await assertRateLimit(`verification-email-uid-min:${decodedToken.uid}`, 1, 60_000);
+      await assertRateLimit(`verification-email-uid-15m:${decodedToken.uid}`, 3, 15 * 60_000);
     } catch {
       return NextResponse.json(
         {
@@ -141,14 +143,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const provider = process.env.EMAIL_VERIFICATION_PROVIDER || 'firebase';
-    const emailFrom = process.env.EMAIL_FROM || '';
-
-    let activeProvider = provider;
-    if (provider === 'resend' && emailFrom.includes('onboarding@resend.dev')) {
-      console.warn('Resend testing sender detected. Falling back to Firebase verification.');
-      activeProvider = 'firebase';
-    }
+    const activeProvider = getEmailVerificationProvider();
 
     if (activeProvider === 'firebase') {
       return NextResponse.json(
@@ -180,7 +175,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          code: 'RESEND_NOT_CONFIGURED',
+          code: 'EMAIL_PROVIDER_NOT_CONFIGURED',
           message: 'Layanan email belum dikonfigurasi. Silakan hubungi support.'
         },
         { status: 503 }

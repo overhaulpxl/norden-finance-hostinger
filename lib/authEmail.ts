@@ -1,6 +1,16 @@
 import { getAdminAuth } from './firebaseAdmin';
 import { getAppUrl, sendEmail } from './email';
-import { getVerificationEmailHtml } from './email/templates/verificationEmail';
+import { getVerificationEmailTemplate } from './email/templates/verificationEmail';
+
+export type EmailVerificationProvider = 'firebase' | 'smtp' | 'resend';
+
+export function getEmailVerificationProvider(): EmailVerificationProvider {
+  const provider = (process.env.EMAIL_VERIFICATION_PROVIDER || 'smtp').trim().toLowerCase();
+  if (provider === 'firebase' || provider === 'smtp' || provider === 'resend') {
+    return provider;
+  }
+  return 'smtp';
+}
 
 export async function sendVerificationEmail({
   email,
@@ -14,21 +24,13 @@ export async function sendVerificationEmail({
     url: `${appUrl}/auth/verified`,
     handleCodeInApp: false,
   });
+  const template = getVerificationEmailTemplate({ verificationLink, userName });
 
   return sendEmail({
     to: email,
-    subject: 'Verify your Norden Finance account',
-    html: getVerificationEmailHtml({ verificationLink, userName }),
-    text: [
-      'Verify your email address',
-      '',
-      'Welcome to Norden Finance.',
-      'Please verify your email address to activate your account and start tracking your money with clarity.',
-      '',
-      verificationLink,
-      '',
-      'Track your money. Find your direction.',
-    ].join('\n'),
+    subject: template.subject,
+    html: template.html,
+    text: template.text,
   });
 }
 

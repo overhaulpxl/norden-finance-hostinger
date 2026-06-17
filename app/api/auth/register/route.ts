@@ -5,7 +5,7 @@ import { SESSION_CONFIG } from '../../../../lib/auth';
 import { assertSameOrigin } from '../../../../lib/requestSecurity';
 import { assertRateLimit, rateLimitKey } from '../../../../lib/rateLimit';
 import { getTrialDays } from '../../../../lib/data/loaders';
-import { sendVerificationEmail } from '../../../../lib/authEmail';
+import { getEmailVerificationProvider, sendVerificationEmail } from '../../../../lib/authEmail';
 
 /**
  * POST /api/auth/register
@@ -66,16 +66,9 @@ export async function POST(request: NextRequest) {
     }
 
     let verificationEmailStatus: unknown = null;
-    const provider = process.env.EMAIL_VERIFICATION_PROVIDER || 'firebase';
-    const emailFrom = process.env.EMAIL_FROM || '';
+    const activeProvider = getEmailVerificationProvider();
 
-    let activeProvider = provider;
-    if (provider === 'resend' && emailFrom.includes('onboarding@resend.dev')) {
-      console.warn('Resend testing sender detected. Falling back to Firebase verification.');
-      activeProvider = 'firebase';
-    }
-
-    if (activeProvider === 'resend') {
+    if (activeProvider !== 'firebase') {
       if (decodedToken.email && decodedToken.email_verified === false) {
         try {
           verificationEmailStatus = await sendVerificationEmail({

@@ -38,6 +38,14 @@ export default function VerifyEmailClient({ initialEmail }: { initialEmail?: str
     return 'Kirim Ulang Email Verifikasi';
   }, [cooldown, loading]);
 
+  async function sendFirebaseVerificationEmail(user: NonNullable<typeof auth.currentUser>) {
+    const { sendEmailVerification } = await import('firebase/auth');
+    const appUrl = getPublicAppUrl(window.location.origin);
+    await sendEmailVerification(user, {
+      url: `${appUrl.replace(/\/$/, '')}/auth/verified`,
+    });
+  }
+
   async function resendVerificationEmail() {
     setError(null);
     setMessage('');
@@ -49,38 +57,29 @@ export default function VerifyEmailClient({ initialEmail }: { initialEmail?: str
 
     setLoading(true);
     try {
-      const provider = process.env.NEXT_PUBLIC_EMAIL_VERIFICATION_PROVIDER || 'firebase';
+      const idToken = await user.getIdToken(true);
+      const response = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
+      const data = await response.json().catch(() => ({}));
 
-      if (provider === 'resend') {
-        const idToken = await user.getIdToken(true);
-        const response = await fetch('/api/auth/resend-verification', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken }),
-        });
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-          if (response.status === 400 && data.code === 'USE_CLIENT_VERIFICATION') {
-            const { sendEmailVerification } = await import('firebase/auth');
-            const appUrl = getPublicAppUrl(window.location.origin);
-            await sendEmailVerification(user, {
-              url: `${appUrl.replace(/\/$/, '')}/auth/verified`
-            });
-          } else {
-            setError(data.message || data.error || 'Gagal mengirim email verifikasi. Silakan coba lagi.');
-            if (response.status === 429 || data.code === 'RATE_LIMITED' || data.code === 'TOO_MANY_ATTEMPTS' || data.code === 'TOO_MANY_REQUESTS') {
-              setCooldown(COOLDOWN_SECONDS);
-            }
-            return;
+      if (!response.ok) {
+        if (response.status === 400 && data.code === 'USE_CLIENT_VERIFICATION') {
+          await sendFirebaseVerificationEmail(user);
+        } else {
+          setError(data.message || data.error || 'Gagal mengirim email verifikasi. Silakan coba lagi.');
+          if (
+            response.status === 429 ||
+            data.code === 'RATE_LIMITED' ||
+            data.code === 'TOO_MANY_ATTEMPTS' ||
+            data.code === 'TOO_MANY_REQUESTS'
+          ) {
+            setCooldown(COOLDOWN_SECONDS);
           }
+          return;
         }
-      } else {
-        const { sendEmailVerification } = await import('firebase/auth');
-        const appUrl = getPublicAppUrl(window.location.origin);
-        await sendEmailVerification(user, {
-          url: `${appUrl.replace(/\/$/, '')}/auth/verified`
-        });
       }
 
       setMessage('Email verifikasi berhasil dikirim ulang. Cek inbox atau spam.');
@@ -120,7 +119,7 @@ export default function VerifyEmailClient({ initialEmail }: { initialEmail?: str
           </div>
           <h1 className="mb-2 text-2xl font-black uppercase tracking-wider text-black">Cek Email Anda</h1>
           <p className="mb-5 text-sm font-bold leading-relaxed text-slate-600">
-            Email verifikasi telah dikirim melalui Firebase Auth. Cek inbox atau spam, lalu klik link verifikasi.
+            Email verifikasi sudah dikirim. Cek inbox atau spam, lalu klik link verifikasi.
           </p>
 
           <div className="mb-5 border-[3px] border-black bg-[#FAF9F5] p-4">
