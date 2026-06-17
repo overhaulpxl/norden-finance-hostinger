@@ -112,7 +112,8 @@ Built with a striking **Neo-Brutalist UI** design language — bold borders, sha
 
 | Feature | Description |
 |---------|-------------|
-| **Firebase Authentication** | Register, login, logout, forgot password, and email verification |
+| **Firebase Authentication** | Register, login, logout, and forgot password |
+| **SMTP Email Verification** | Firebase Admin generates verification links, Hostinger SMTP sends branded verification email |
 | **Server-Side Sessions** | Secure session cookie management via Firebase Admin SDK |
 | **Onboarding Flow** | Guided setup: register → verify email → login → set name, first wallet, opening balance |
 | **Rate Limiting** | API rate limiting to prevent abuse |
@@ -296,39 +297,33 @@ npx prisma generate
 Configure these variables in your `.env.local` file:
 
 ```env
-# Database Connections
+# Runtime Database
 DATABASE_URL="mysql://DB_USER:DB_PASSWORD@DB_HOST:3306/DB_NAME"
-POSTGRES_DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DATABASE"
-MYSQL_DATABASE_URL="mysql://DB_USER:DB_PASSWORD@DB_HOST:3306/DB_NAME"
 
 # Firebase Client (Public Config)
 NEXT_PUBLIC_FIREBASE_API_KEY=
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=norden-finance.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=norden-finance
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=norden-finance.firebasestorage.app
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=750168227408
 NEXT_PUBLIC_FIREBASE_APP_ID=
 NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=
 
 # Firebase Admin SDK (Server-Only Credentials)
-FIREBASE_ADMIN_PROJECT_ID=
-FIREBASE_ADMIN_CLIENT_EMAIL=
-FIREBASE_ADMIN_PRIVATE_KEY=
+FIREBASE_PROJECT_ID=norden-finance
+FIREBASE_CLIENT_EMAIL=
+FIREBASE_PRIVATE_KEY=
 
 # Google Gemini AI Key
 GEMINI_API_KEY=
 
 # Hostinger SMTP Email Verification
-EMAIL_VERIFICATION_PROVIDER=smtp
 SMTP_HOST=smtp.hostinger.com
 SMTP_PORT=465
 SMTP_SECURE=true
 SMTP_USER=no-reply@nordenfinance.site
 SMTP_PASS=
 EMAIL_FROM="Norden Finance <no-reply@nordenfinance.site>"
-
-# Optional Resend fallback
-RESEND_API_KEY=
 
 # Application Config
 NEXT_PUBLIC_APP_URL=https://nordenfinance.site
@@ -341,6 +336,8 @@ MAX_UPLOAD_SIZE_MB=5
 ADMIN_EMAIL=admin@nordenfinance.site
 SUPPORT_EMAIL=support@nordenfinance.site
 ```
+
+One-time migration variables belong in `.env.migration`, based on `.env.migration.example`. Production Hostinger runtime does not need `POSTGRES_DATABASE_URL`, `MYSQL_DATABASE_URL`, `EMAIL_VERIFICATION_PROVIDER`, or `RESEND_API_KEY`.
 
 ---
 
@@ -368,7 +365,7 @@ Norden Finance supports logging transactions directly from mobile OS automation 
 
 Hostinger deployment uses Managed Node.js hosting, not VPS. Use repository `overhaulpxl/norden-finance-hostinger`, branch `main`, root directory `/`, install command `npm install`, build command `npm run build`, and start command `npm run start`.
 
-Set `DATABASE_URL` to the Hostinger MySQL/MariaDB database after backups and data migration are complete. Set `NEXT_PUBLIC_APP_URL=https://nordenfinance.site`, `EMAIL_VERIFICATION_PROVIDER=smtp`, and Hostinger SMTP credentials for `no-reply@nordenfinance.site`. Use `STORAGE_PROVIDER=local` only after Hostinger upload persistence is verified after restart, rebuild, and redeploy.
+Set `DATABASE_URL` to the Hostinger MySQL/MariaDB database after backups and data migration are complete. Set `NEXT_PUBLIC_APP_URL=https://nordenfinance.site` and Hostinger SMTP credentials for `no-reply@nordenfinance.site`. Verification email is SMTP-only: the app does not use Resend or Firebase default verification email sending. Use `STORAGE_PROVIDER=local` only after Hostinger upload persistence is verified after restart, rebuild, and redeploy.
 
 See `DEPLOY_HOSTINGER.md` for the full deployment, backup, data verification, DNS, Firebase Authorized Domains, and rollback checklist.
 

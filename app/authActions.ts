@@ -8,7 +8,6 @@
 // to create a server-side session cookie.
 
 import { auth } from '../lib/firebase';
-import { getPublicAppUrl } from '../lib/appUrl';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -16,7 +15,6 @@ import {
   sendPasswordResetEmail,
   GoogleAuthProvider,
   signInWithPopup,
-  sendEmailVerification,
 } from 'firebase/auth';
 
 export async function loginAction(email: string, password: string) {
@@ -88,14 +86,6 @@ export async function registerAction(fullName: string, email: string, password: 
     if (!res.ok) {
       const data = await res.json();
       return { success: false, error: data.error || 'Gagal membuat akun' };
-    }
-
-    const data = await res.json();
-    if (data.requiresEmailVerification && data.emailVerificationProvider === 'firebase') {
-      const appUrl = getPublicAppUrl(typeof window !== 'undefined' ? window.location.origin : undefined);
-      await sendEmailVerification(credential.user, {
-        url: `${appUrl.replace(/\/$/, '')}/auth/verified`
-      });
     }
 
     return { success: true, requiresEmailVerification: true, email: credential.user.email || email.toLowerCase() };

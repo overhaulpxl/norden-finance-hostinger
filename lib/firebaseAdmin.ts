@@ -21,14 +21,14 @@ type AdminAuthLike = {
   deleteUser?: (uid: string) => Promise<void>;
 };
 
-function envWithFallback(primary: string, fallback: string): string | undefined {
-  return process.env[primary] || process.env[fallback];
+function adminEnv(name: string): string | undefined {
+  return process.env[name];
 }
 
-function requiredEnvWithFallback(primary: string, fallback: string): string {
-  const value = envWithFallback(primary, fallback);
+function requiredAdminEnv(name: string): string {
+  const value = adminEnv(name);
   if (!value) {
-    throw new Error(`${primary} or ${fallback} is required for Firebase Admin`);
+    throw new Error(`${name} is required for Firebase Admin`);
   }
   return value;
 }
@@ -37,9 +37,9 @@ function ensureFirebaseAdminApp() {
   if (getApps().length > 0) return;
 
   const serviceAccount: ServiceAccount = {
-    projectId: requiredEnvWithFallback('FIREBASE_PROJECT_ID', 'FIREBASE_ADMIN_PROJECT_ID'),
-    clientEmail: requiredEnvWithFallback('FIREBASE_CLIENT_EMAIL', 'FIREBASE_ADMIN_CLIENT_EMAIL'),
-    privateKey: requiredEnvWithFallback('FIREBASE_PRIVATE_KEY', 'FIREBASE_ADMIN_PRIVATE_KEY').replace(/\\n/g, '\n'),
+    projectId: requiredAdminEnv('FIREBASE_PROJECT_ID'),
+    clientEmail: requiredAdminEnv('FIREBASE_CLIENT_EMAIL'),
+    privateKey: requiredAdminEnv('FIREBASE_PRIVATE_KEY').replace(/\\n/g, '\n'),
   };
 
   initializeApp({
@@ -74,10 +74,10 @@ function withUid(decoded: DecodedToken) {
 }
 
 export function getAdminAuth(): AdminAuthLike {
-  const isConfigured = 
-    envWithFallback('FIREBASE_PROJECT_ID', 'FIREBASE_ADMIN_PROJECT_ID') &&
-    envWithFallback('FIREBASE_CLIENT_EMAIL', 'FIREBASE_ADMIN_CLIENT_EMAIL') &&
-    envWithFallback('FIREBASE_PRIVATE_KEY', 'FIREBASE_ADMIN_PRIVATE_KEY');
+  const isConfigured =
+    adminEnv('FIREBASE_PROJECT_ID') &&
+    adminEnv('FIREBASE_CLIENT_EMAIL') &&
+    adminEnv('FIREBASE_PRIVATE_KEY');
 
   if (isConfigured) {
     ensureFirebaseAdminApp();
@@ -85,7 +85,7 @@ export function getAdminAuth(): AdminAuthLike {
   }
 
   if (process.env.NODE_ENV === 'production') {
-    throw new Error('Firebase Admin environment variables (FIREBASE_ADMIN_PROJECT_ID, etc.) are required in production.');
+    throw new Error('Firebase Admin environment variables (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY) are required in production.');
   }
 
   // Fallback for local development (no service account JSON configured)
@@ -118,10 +118,10 @@ export function getAdminAuth(): AdminAuthLike {
 }
 
 export function getAdminStorage() {
-  const isConfigured = 
-    envWithFallback('FIREBASE_PROJECT_ID', 'FIREBASE_ADMIN_PROJECT_ID') &&
-    envWithFallback('FIREBASE_CLIENT_EMAIL', 'FIREBASE_ADMIN_CLIENT_EMAIL') &&
-    envWithFallback('FIREBASE_PRIVATE_KEY', 'FIREBASE_ADMIN_PRIVATE_KEY');
+  const isConfigured =
+    adminEnv('FIREBASE_PROJECT_ID') &&
+    adminEnv('FIREBASE_CLIENT_EMAIL') &&
+    adminEnv('FIREBASE_PRIVATE_KEY');
 
   if (isConfigured) {
     ensureFirebaseAdminApp();
@@ -129,7 +129,7 @@ export function getAdminStorage() {
   }
 
   if (process.env.NODE_ENV === 'production') {
-    throw new Error('Firebase Admin environment variables (FIREBASE_ADMIN_PROJECT_ID, etc.) are required in production.');
+    throw new Error('Firebase Admin environment variables (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY) are required in production.');
   }
 
   // Fallback storage bucket mock for local development

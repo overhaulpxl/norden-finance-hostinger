@@ -5,6 +5,7 @@ import { config } from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import { getSignedUrl, uploadFile } from '../lib/storage';
 
+config({ path: '.env.migration', quiet: true });
 config({ path: '.env.local', quiet: true });
 config({ path: '.env', quiet: true });
 

@@ -4,40 +4,36 @@ config({ path: '.env.local' });
 config({ path: '.env' });
 
 const required = [
-  'DATABASE_URL',
   'NEXT_PUBLIC_APP_URL',
+  'DATABASE_URL',
   'NEXT_PUBLIC_FIREBASE_API_KEY',
   'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
   'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
   'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
   'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
   'NEXT_PUBLIC_FIREBASE_APP_ID',
-  'GEMINI_API_KEY',
-  'CRON_SECRET',
-  'EMAIL_VERIFICATION_PROVIDER',
+  'FIREBASE_PROJECT_ID',
+  'FIREBASE_CLIENT_EMAIL',
+  'FIREBASE_PRIVATE_KEY',
+  'SMTP_HOST',
+  'SMTP_PORT',
+  'SMTP_SECURE',
+  'SMTP_USER',
+  'SMTP_PASS',
+  'EMAIL_FROM',
   'STORAGE_PROVIDER',
   'UPLOAD_DIR',
   'UPLOAD_PUBLIC_BASE_URL',
+  'MAX_UPLOAD_SIZE_MB',
+  'GEMINI_API_KEY',
+  'CRON_SECRET',
+  'SHORTCUT_TOKEN_SECRET',
   'ADMIN_EMAIL',
   'SUPPORT_EMAIL',
 ];
 
 const missing = required.filter((key) => !process.env[key]?.trim());
 const weak: string[] = [];
-
-function envWithFallback(primary: string, fallback: string) {
-  return process.env[primary]?.trim() || process.env[fallback]?.trim();
-}
-
-if (!envWithFallback('FIREBASE_PROJECT_ID', 'FIREBASE_ADMIN_PROJECT_ID')) {
-  missing.push('FIREBASE_PROJECT_ID or FIREBASE_ADMIN_PROJECT_ID');
-}
-if (!envWithFallback('FIREBASE_CLIENT_EMAIL', 'FIREBASE_ADMIN_CLIENT_EMAIL')) {
-  missing.push('FIREBASE_CLIENT_EMAIL or FIREBASE_ADMIN_CLIENT_EMAIL');
-}
-if (!envWithFallback('FIREBASE_PRIVATE_KEY', 'FIREBASE_ADMIN_PRIVATE_KEY')) {
-  missing.push('FIREBASE_PRIVATE_KEY or FIREBASE_ADMIN_PRIVATE_KEY');
-}
 
 const databaseUrl = process.env.DATABASE_URL || '';
 if (databaseUrl && !databaseUrl.startsWith('mysql://')) {
@@ -54,20 +50,9 @@ if (cronSecret && cronSecret.length < 32) {
   weak.push('CRON_SECRET must be at least 32 characters.');
 }
 
-const shortcutSecret = process.env.SHORTCUT_TOKEN_SECRET || process.env.CRON_SECRET || '';
+const shortcutSecret = process.env.SHORTCUT_TOKEN_SECRET || '';
 if (shortcutSecret && shortcutSecret.length < 32) {
-  weak.push('SHORTCUT_TOKEN_SECRET or CRON_SECRET must be at least 32 characters for shortcut tokens.');
-}
-
-const provider = (process.env.EMAIL_VERIFICATION_PROVIDER || '').trim().toLowerCase();
-if (provider && !['smtp', 'firebase', 'resend'].includes(provider)) {
-  weak.push('EMAIL_VERIFICATION_PROVIDER must be smtp, firebase, or resend.');
-}
-
-if (provider === 'smtp') {
-  for (const key of ['SMTP_HOST', 'SMTP_PORT', 'SMTP_SECURE', 'SMTP_USER', 'SMTP_PASS', 'EMAIL_FROM']) {
-    if (!process.env[key]?.trim()) missing.push(key);
-  }
+  weak.push('SHORTCUT_TOKEN_SECRET must be at least 32 characters.');
 }
 
 const emailFrom = process.env.EMAIL_FROM || '';
@@ -81,9 +66,19 @@ if (smtpPort && !Number.isInteger(Number(smtpPort))) {
   weak.push('SMTP_PORT must be a number.');
 }
 
+const smtpSecure = (process.env.SMTP_SECURE || '').toLowerCase();
+if (smtpSecure && !['true', 'false'].includes(smtpSecure)) {
+  weak.push('SMTP_SECURE must be true or false.');
+}
+
 const storageProvider = (process.env.STORAGE_PROVIDER || '').trim().toLowerCase();
 if (storageProvider && storageProvider !== 'local') {
   weak.push('STORAGE_PROVIDER must be local for Hostinger production.');
+}
+
+const maxUploadSize = process.env.MAX_UPLOAD_SIZE_MB || '';
+if (maxUploadSize && (!Number.isFinite(Number(maxUploadSize)) || Number(maxUploadSize) <= 0)) {
+  weak.push('MAX_UPLOAD_SIZE_MB must be a positive number.');
 }
 
 if (missing.length || weak.length) {

@@ -16,6 +16,7 @@
     "migrate:postgres-to-mysql": "tsx scripts/migrate-postgres-to-mysql.ts",
     "migrate:firebase-storage-to-local": "tsx scripts/migrate-firebase-storage-to-local.ts",
     "check:production": "tsx scripts/check-production-readiness.ts",
+    "check:migration": "tsx scripts/check-migration-readiness.ts",
     "check:bundle": "tsx scripts/check-bundle-budget.ts",
     "check:release": "npm run lint && npx tsc --noEmit && npx prisma validate && npm audit --omit=dev && npm run build && npm run check:bundle && npm run check:production",
     "seed:defaults": "prisma db seed"
@@ -47,6 +48,7 @@
     "uuid": "^11.1.1"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.1",

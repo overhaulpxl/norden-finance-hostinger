@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getEmailVerificationProvider, sendVerificationEmail } from '../../../../lib/authEmail';
+import { sendVerificationEmail } from '../../../../lib/authEmail';
 import { getAdminAuth } from '../../../../lib/firebaseAdmin';
 import { prisma } from '../../../../lib/prisma';
 import { assertRateLimit, rateLimitKey } from '../../../../lib/rateLimit';
@@ -61,12 +61,12 @@ function normalizeAuthError(error: unknown): { code: string; message: string; st
       message = 'Email tidak valid.';
       status = 400;
     } else if (
-      searchTarget.includes('email_provider_not_configured') ||
+      searchTarget.includes('smtp_not_configured') ||
       searchTarget.includes('required for smtp email delivery') ||
       searchTarget.includes('smtp_port must be') ||
       searchTarget.includes('smtp_secure must be')
     ) {
-      errorCode = 'EMAIL_PROVIDER_NOT_CONFIGURED';
+      errorCode = 'SMTP_NOT_CONFIGURED';
       message = 'Layanan email belum dikonfigurasi. Silakan hubungi support.';
       status = 503;
     }
@@ -81,12 +81,12 @@ function normalizeAuthError(error: unknown): { code: string; message: string; st
       message = 'Terlalu banyak percobaan. Silakan coba lagi nanti.';
       status = 429;
     } else if (
-      searchTarget.includes('email_provider_not_configured') ||
+      searchTarget.includes('smtp_not_configured') ||
       searchTarget.includes('required for smtp email delivery') ||
       searchTarget.includes('smtp_port must be') ||
       searchTarget.includes('smtp_secure must be')
     ) {
-      errorCode = 'EMAIL_PROVIDER_NOT_CONFIGURED';
+      errorCode = 'SMTP_NOT_CONFIGURED';
       message = 'Layanan email belum dikonfigurasi. Silakan hubungi support.';
       status = 503;
     }
@@ -143,19 +143,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const activeProvider = getEmailVerificationProvider();
-
-    if (activeProvider === 'firebase') {
-      return NextResponse.json(
-        {
-          ok: false,
-          code: 'USE_CLIENT_VERIFICATION',
-          message: 'Layanan email verifikasi dikonfigurasi melalui Firebase client.'
-        },
-        { status: 400 }
-      );
-    }
-
     const email = decodedToken.email || (await adminAuth.getUser(decodedToken.uid)).email;
     if (!email) {
       return NextResponse.json({ ok: false, error: 'Email tidak tersedia untuk akun ini.', message: 'Email tidak tersedia untuk akun ini.' }, { status: 400 });
@@ -170,17 +157,6 @@ export async function POST(request: NextRequest) {
       email,
       userName: profile?.fullName || null,
     });
-
-    if ('skipped' in result) {
-      return NextResponse.json(
-        {
-          ok: false,
-          code: 'EMAIL_PROVIDER_NOT_CONFIGURED',
-          message: 'Layanan email belum dikonfigurasi. Silakan hubungi support.'
-        },
-        { status: 503 }
-      );
-    }
 
     if ('error' in result) {
       const normalized = normalizeAuthError(result.error);

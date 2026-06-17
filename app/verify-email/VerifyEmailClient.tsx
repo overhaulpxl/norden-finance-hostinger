@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { onAuthStateChanged } from 'firebase/auth';
 import { MailCheck, RefreshCw } from 'lucide-react';
 import BrandLogo from '../../components/BrandLogo';
-import { getPublicAppUrl } from '../../lib/appUrl';
 import { auth } from '../../lib/firebase';
 
 const COOLDOWN_SECONDS = 60;
@@ -38,15 +37,7 @@ export default function VerifyEmailClient({ initialEmail }: { initialEmail?: str
     return 'Kirim Ulang Email Verifikasi';
   }, [cooldown, loading]);
 
-  async function sendFirebaseVerificationEmail(user: NonNullable<typeof auth.currentUser>) {
-    const { sendEmailVerification } = await import('firebase/auth');
-    const appUrl = getPublicAppUrl(window.location.origin);
-    await sendEmailVerification(user, {
-      url: `${appUrl.replace(/\/$/, '')}/auth/verified`,
-    });
-  }
-
-  async function resendVerificationEmail() {
+  async function requestVerificationEmail() {
     setError(null);
     setMessage('');
     const user = auth.currentUser;
@@ -66,20 +57,16 @@ export default function VerifyEmailClient({ initialEmail }: { initialEmail?: str
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        if (response.status === 400 && data.code === 'USE_CLIENT_VERIFICATION') {
-          await sendFirebaseVerificationEmail(user);
-        } else {
-          setError(data.message || data.error || 'Gagal mengirim email verifikasi. Silakan coba lagi.');
-          if (
-            response.status === 429 ||
-            data.code === 'RATE_LIMITED' ||
-            data.code === 'TOO_MANY_ATTEMPTS' ||
-            data.code === 'TOO_MANY_REQUESTS'
-          ) {
-            setCooldown(COOLDOWN_SECONDS);
-          }
-          return;
+        setError(data.message || data.error || 'Gagal mengirim email verifikasi. Silakan coba lagi.');
+        if (
+          response.status === 429 ||
+          data.code === 'RATE_LIMITED' ||
+          data.code === 'TOO_MANY_ATTEMPTS' ||
+          data.code === 'TOO_MANY_REQUESTS'
+        ) {
+          setCooldown(COOLDOWN_SECONDS);
         }
+        return;
       }
 
       setMessage('Email verifikasi berhasil dikirim ulang. Cek inbox atau spam.');
@@ -140,7 +127,7 @@ export default function VerifyEmailClient({ initialEmail }: { initialEmail?: str
 
           <button
             type="button"
-            onClick={resendVerificationEmail}
+            onClick={requestVerificationEmail}
             disabled={loading || cooldown > 0}
             className="mb-4 flex w-full items-center justify-center gap-2 border-[3px] border-black bg-[#FFE066] py-4 text-xs font-black uppercase tracking-wider text-black shadow-[4px_4px_0px_0px_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_#000] disabled:cursor-not-allowed disabled:opacity-60"
           >

@@ -13,13 +13,15 @@ This is not a VPS deployment. Do not use Nginx, PM2, `sudo`, `systemctl`, local 
 
 ## Final Service Map
 
-- Hostinger: Next.js app, MySQL/MariaDB, local uploads.
-- Firebase: Auth and Firebase Admin verification only.
-- Hostinger SMTP: email verification and transactional email.
+- Hostinger: Next.js app, MySQL/MariaDB, local uploads, SMTP mailbox.
+- Firebase: Auth and Firebase Admin verification-link generation.
+- Email verification: Hostinger SMTP only.
 - Gemini: AI parsing and receipt scanning.
 - Old PostgreSQL: one-time migration source only.
 - Old Firebase Storage: old-file migration source and rollback source only.
-- Resend: optional fallback only; not required for email verification.
+- Resend: not used.
+
+Firebase default verification email sending is not used. The app registers users with Firebase Auth, generates verification links with Firebase Admin, and sends the branded verification email through Hostinger SMTP.
 
 ## Safety Rules
 
@@ -43,16 +45,26 @@ This is not a VPS deployment. Do not use Nginx, PM2, `sudo`, `systemctl`, local 
 | Start Command | `npm run start` |
 | Node Version | `22` |
 
-## Environment Variables
+## Production Runtime Environment
+
+Set these in Hostinger Managed Node.js:
 
 ```env
-DATABASE_URL=mysql://u945428838_nordenfinance:PASSWORD@localhost:3306/u945428838_nordenfinance
-MYSQL_DATABASE_URL=mysql://u945428838_nordenfinance:PASSWORD@localhost:3306/u945428838_nordenfinance
-POSTGRES_DATABASE_URL=postgresql://OLD_POSTGRES_URL
-
 NEXT_PUBLIC_APP_URL=https://nordenfinance.site
+DATABASE_URL=mysql://u945428838_nordenfinance:PASSWORD@localhost:3306/u945428838_nordenfinance
 
-EMAIL_VERIFICATION_PROVIDER=smtp
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=norden-finance.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=norden-finance
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=norden-finance.firebasestorage.app
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=750168227408
+NEXT_PUBLIC_FIREBASE_APP_ID=
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=
+
+FIREBASE_PROJECT_ID=norden-finance
+FIREBASE_CLIENT_EMAIL=
+FIREBASE_PRIVATE_KEY=
+
 SMTP_HOST=smtp.hostinger.com
 SMTP_PORT=465
 SMTP_SECURE=true
@@ -65,32 +77,25 @@ UPLOAD_DIR=/home/u945428838/domains/nordenfinance.site/uploads
 UPLOAD_PUBLIC_BASE_URL=https://nordenfinance.site/api/files
 MAX_UPLOAD_SIZE_MB=5
 
-NEXT_PUBLIC_FIREBASE_API_KEY=
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
-NEXT_PUBLIC_FIREBASE_APP_ID=
-NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=
-
-FIREBASE_PROJECT_ID=
-FIREBASE_CLIENT_EMAIL=
-FIREBASE_PRIVATE_KEY=
-
-FIREBASE_ADMIN_PROJECT_ID=
-FIREBASE_ADMIN_CLIENT_EMAIL=
-FIREBASE_ADMIN_PRIVATE_KEY=
-
 GEMINI_API_KEY=
 CRON_SECRET=
 SHORTCUT_TOKEN_SECRET=
 ADMIN_EMAIL=admin@nordenfinance.site
 SUPPORT_EMAIL=support@nordenfinance.site
-
-RESEND_API_KEY=
 ```
 
-`POSTGRES_DATABASE_URL` and `MYSQL_DATABASE_URL` are migration-only variables. Keep them until old data is copied and verified. `RESEND_API_KEY` is optional.
+Production runtime does not need `EMAIL_VERIFICATION_PROVIDER`, `RESEND_API_KEY`, `POSTGRES_DATABASE_URL`, `MYSQL_DATABASE_URL`, or duplicate `FIREBASE_ADMIN_*` variables.
+
+## Migration Environment
+
+Migration-only variables belong in `.env.migration`, based on `.env.migration.example`. They are not normal Hostinger runtime variables.
+
+```env
+POSTGRES_DATABASE_URL=postgresql://OLD_POSTGRES_URL
+MYSQL_DATABASE_URL=mysql://u945428838_nordenfinance:PASSWORD@localhost:3306/u945428838_nordenfinance
+```
+
+Firebase Storage to local migration also needs the Firebase Admin and upload variables shown in `.env.migration.example`.
 
 ## Database Migration
 
@@ -162,11 +167,12 @@ No uploads should be saved inside `.next`, `src`, or `public`.
 
 1. Create the `no-reply@nordenfinance.site` mailbox in Hostinger.
 2. Set the SMTP environment variables.
-3. Enable SPF for the domain.
-4. Enable DKIM for the domain.
-5. Add a DMARC record.
-6. Test verification delivery to Gmail, Outlook, and Yahoo.
-7. Keep subjects and body copy direct; avoid spammy wording.
+3. Use the mailbox password for `SMTP_PASS`; it is not the database password.
+4. Enable SPF for the domain.
+5. Enable DKIM for the domain.
+6. Add a DMARC record.
+7. Test verification delivery to Gmail, Outlook, and Yahoo.
+8. Keep subjects and body copy direct; avoid spammy wording.
 
 ## Loading Behavior
 
@@ -177,7 +183,7 @@ No uploads should be saved inside `.next`, `src`, or `public`.
 
 ## Firebase Configuration
 
-Firebase remains for Auth and Admin verification. In Firebase Console, add:
+Firebase remains for Auth and Admin verification-link generation. In Firebase Console, add:
 
 ```text
 nordenfinance.site

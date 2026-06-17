@@ -2,6 +2,7 @@ import { config } from 'dotenv';
 import pg from 'pg';
 import mysql, { type RowDataPacket } from 'mysql2/promise';
 
+config({ path: '.env.migration', quiet: true });
 config({ path: '.env.local', quiet: true });
 config({ path: '.env', quiet: true });
 

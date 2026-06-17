@@ -5,7 +5,7 @@ import { SESSION_CONFIG } from '../../../../lib/auth';
 import { assertSameOrigin } from '../../../../lib/requestSecurity';
 import { assertRateLimit, rateLimitKey } from '../../../../lib/rateLimit';
 import { getTrialDays } from '../../../../lib/data/loaders';
-import { getEmailVerificationProvider, sendVerificationEmail } from '../../../../lib/authEmail';
+import { sendVerificationEmail } from '../../../../lib/authEmail';
 
 /**
  * POST /api/auth/register
@@ -66,20 +66,17 @@ export async function POST(request: NextRequest) {
     }
 
     let verificationEmailStatus: unknown = null;
-    const activeProvider = getEmailVerificationProvider();
 
-    if (activeProvider !== 'firebase') {
-      if (decodedToken.email && decodedToken.email_verified === false) {
-        try {
-          verificationEmailStatus = await sendVerificationEmail({
-            email: decodedToken.email,
-            userName: fullName || existingProfile?.fullName || null,
-          });
-        } catch (emailError) {
-          const message = emailError instanceof Error ? emailError.message : 'Verification email failed';
-          console.warn('Verification email failed:', message);
-          verificationEmailStatus = { error: message };
-        }
+    if (decodedToken.email && decodedToken.email_verified === false) {
+      try {
+        verificationEmailStatus = await sendVerificationEmail({
+          email: decodedToken.email,
+          userName: fullName || existingProfile?.fullName || null,
+        });
+      } catch (emailError) {
+        const message = emailError instanceof Error ? emailError.message : 'Verification email failed';
+        console.warn('Verification email failed:', message);
+        verificationEmailStatus = { error: message };
       }
     }
 
@@ -87,7 +84,6 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({
       success: true,
       requiresEmailVerification: !shouldCreateSession,
-      emailVerificationProvider: activeProvider,
       verificationEmailStatus,
     });
 
